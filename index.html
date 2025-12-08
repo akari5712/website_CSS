@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>李培榮's blog</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        /* ---------------------------------
+        1. Base & Reset Styles
+        --------------------------------- */
+        :root {
+            --primary-color: #007bff; /* 主要連結/高亮色 */
+            --text-color: #212529; /* 主文本顏色 */
+            --secondary-text-color: #6c757d; /* 次要文本顏色 */
+            --bg-color: #ffffff; /* 背景顏色 */
+            --border-color: #dee2e6; /* 邊框/分隔線顏色 */
+            --sidebar-width: 250px;
+            --font-family-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            --font-family-serif: Georgia, "Times New Roman", Times, serif;
+        }
+
+        body {
+            font-family: var(--font-family-sans);
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            line-height: 1.6;
+            margin: 0;
+            padding-top: 56px; /* 留給固定頂部導航的空間 */
+        }
+
+        a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 600;
+        }
+
+        /* ---------------------------------
+        2. Top Navigation (高度還原)
+        --------------------------------- */
+        .navbar {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background-color: var(--bg-color);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.5rem 1rem;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar-brand {
+            font-size: 1.25rem;
+            font-weight: 700;
+            padding-right: 1rem;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            padding-right: 30px;
+        }
+
+        .nav-links li a {
+            display: block;
+            padding: 0.5rem 1rem;
+            color: var(--text-color);
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .nav-links li a:hover,
+        .nav-links li.active a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        /* ---------------------------------
+        3. Main Layout (兩欄佈局)
+        --------------------------------- */
+        .container-wrapper {
+            display: flex;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 15px;
+        }
+
+        /* ---------------------------------
+        4. Sidebar (左側檔案)
+        --------------------------------- */
+        .profile-sidebar {
+            width: var(--sidebar-width);
+            flex-shrink: 0;
+            padding-top: 2rem;
+            padding-right: 30px;
+            position: sticky;
+            top: 56px; /* 貼在導航欄下方 */
+            height: calc(100vh - 56px); /* 使側邊欄可視範圍充滿整個高度 */
+            overflow-y: auto; /* 允許側邊欄內容滾動 */
+        }
+
+        .profile-picture {
+            width: 100%;
+            max-width: 150px;
+            height: auto;
+            border-radius: 50%;
+            display: block;
+            margin: 0 auto 1rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .profile-bio {
+            font-size: 0.95rem;
+            margin-bottom: 1.5rem;
+            color: var(--secondary-text-color);
+        }
+
+        .profile-meta {
+            margin-bottom: 1.5rem;
+            font-size: 0.85rem;
+        }
+
+        .social-icons a {
+            font-size: 1.25rem;
+            margin-right: 10px;
+            color: var(--secondary-text-color);
+        }
+        
+        .social-icons a:hover {
+            color: var(--primary-color);
+        }
+
+        /* ---------------------------------
+        5. Main Content (右側內容)
+        --------------------------------- */
+        .main-content {
+            flex-grow: 1;
+            padding-top: 2rem;
+            padding-left: 15px;
+        }
+
+        /* News Section */
+        .news-item {
+            margin-bottom: 1rem;
+            font-size: 0.95rem;
+            display: flex;
+        }
+
+        .news-item-date {
+            color: var(--secondary-text-color);
+            min-width: 90px;
+            font-weight: 500;
+        }
+        
+        /* Publication Section (高度還原學術樣式) */
+        .publication-item {
+            margin-bottom: 2rem;
+            padding: 1rem 0;
+            border-bottom: 1px dashed var(--border-color);
+        }
+        
+        .publication-item:last-child {
+             border-bottom: none;
+        }
+
+        .pub-title {
+            font-family: var(--font-family-serif);
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .pub-authors {
+            font-size: 1rem;
+            color: var(--text-color);
+            margin-bottom: 0.5rem;
+        }
+        
+        .pub-details {
+            font-size: 0.9rem;
+            color: var(--secondary-text-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .pub-links a {
+            display: inline-block;
+            margin-right: 10px;
+            padding: 3px 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+        
+        .pub-links a:hover {
+            background-color: #f8f9fa;
+            text-decoration: none;
+        }
+        
+        .pub-abstract {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: var(--secondary-text-color);
+            border-left: 3px solid var(--border-color);
+            padding-left: 10px;
+        }
+
+        /* ---------------------------------
+        6. Footer
+        --------------------------------- */
+        .footer {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 15px;
+            font-size: 0.8rem;
+            color: var(--secondary-text-color);
+            text-align: center;
+            border-top: 1px solid var(--border-color);
+        }
+        .con{
+            text-align: start;
+        }
+        /* ---------------------------------
+        7. Responsiveness (互動細節 - 響應式佈局)
+        --------------------------------- */
+        @media (max-width: 768px) {
+            .navbar {
+                justify-content: center;
+            }
+            
+            .nav-links {
+                display: none; /* 模擬手機導航隱藏，需要JS實現切換 */
+            }
+            
+            .navbar-brand {
+                padding: 0;
+            }
+
+            .container-wrapper {
+                flex-direction: column; /* 垂直堆疊 */
+            }
+
+            .profile-sidebar {
+                position: static; /* 不固定 */
+                width: 100%;
+                padding-right: 15px;
+                height: auto;
+                text-align: center;
+                border-bottom: 1px solid var(--border-color);
+                margin-bottom: 1rem;
+            }
+            
+            .profile-picture {
+                margin: 0.5rem auto 1rem;
+            }
+            
+            .main-content {
+                padding-left: 0;
+            }
+            
+            .news-item {
+                flex-direction: column;
+            }
+            .news-item-date {
+                min-width: auto;
+                margin-bottom: 0.25rem;
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <span class="navbar-brand">李培榮</span>
+        <ul class="nav-links">
+            <li class="active"><a href="#">首頁</a></li>
+            <li><a href="#profile">關於我</a></li>
+            <li><a href="#studied">學習經歷</a></li>
+            <li><a href="#project">作品集</a></li>
+            <li><a href="#">cv</a></li>
+        </ul>
+        </nav>
+
+    <div class="container-wrapper">
+        
+        <aside id="profile" class="profile-sidebar">
+            <img src="images/102382-modified.png" alt="Profile Picture" class="profile-picture">
+            
+            <div class="profile-meta">
+                李培榮<br>
+                我從來不會炫耀我是國立臺灣大學的，因為我不是。
+            </div>
+            
+            <p class="profile-bio">
+                既然那麼愛做網路上的測驗，為何不來做《大學入學分科測驗》呢？
+大學入學分科測驗是一份由大考中心獨立命題的考試，在考場，你將扮演一名108課綱的小白鼠，與一至八項考試科目奮鬥並取得勝利，和其它考生一同摸索如何通往60級分的道路。
+            </p>
+            
+            <div class="social-icons">
+                <a href="#" title="Email"><i class="fas fa-envelope"></i></a>
+                <a href="#" title="Google Scholar"><i class="ai ai-google-scholar-square"></i></a> <a href="#" title="Twitter"><i class="fab fa-twitter-square"></i></a>
+                <a href="#" title="GitHub"><i class="fab fa-github-square"></i></a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            
+            <h2>news</h2>
+            
+            <div class="news-item">
+                <span class="news-item-date">Jan 15, 2025</span>
+                <span>一個簡單的行內公告，使用 Markdown emoji! :sparkles: :smile:</span>
+            </div>
+            <div class="news-item">
+                <span class="news-item-date">Nov 07, 2024</span>
+                <span>一個較長的公告，包含更多細節和<a href="#">鏈接</a>。</span>
+            </div>
+            <div class="news-item">
+                <span class="news-item-date">Oct 22, 2024</span>
+                <span>一個簡單的行內公告。</span>
+            </div>
+            <div id="studied">
+                <h2 >學習經歷</h2>
+                
+                <ul style="list-style: none; padding-left: 0; margin-bottom: 2rem;">
+                    <li><span class="news-item-date">2018-2020</span> 學務處志工出大包</li>
+                    <li><span class="news-item-date">2021-2024</span> 國立台南女中吊車尾</li>
+                    <li><span class="news-item-date">2024-2025</span> 國立台北教育大學想欲系</li>
+                </ul>
+            </div>
+            <div id="project">
+                <h2 >作品集</h2>
+                
+                <div class="publication-item">
+                    <div class="pub-title">圖片</div>
+                    <div class="pic">
+                        <img src="images/Gemini_Generated_Image_d1ua70d1ua70d1ua.png" width="30%">
+                        <img src="images/106215_1.jpg" width="30%">
+                    </div>
+                    <div class="pub-authors">
+                        A. Einstein, B. Podolsky, and N. Rosen
+                    </div>
+                    <div class="pub-details">
+                        Phys. Rev., New Jersey. May 1935.
+                    </div>
+                    <div class="pub-abstract">
+                        在一個完整的理論中，存在一個元素對應於現實的每個元素。判斷一個物理量是否真實的充分條件是，能夠在不干擾系統的情況下確切地預測它。量子力學中... (抽象摘要佔位)
+                    </div>
+                </div>
+                
+                <div class="publication-item">
+                    <div class="pub-title">影片</div>
+                    <div class="video">
+                        <video controls width="30%">
+                            <source src="video/玩具店櫥窗的雪夜母子.mp4" >
+                        </video>
+                        <video controls width="30%">
+                            <source src="video/63d51ff7-9ba0-4edd-9c74-2b6427435012.mp4">
+                        </video>
+                    </div>
+                    <div class="pub-authors">
+                        大二及大一完成的課堂作業
+                    </div>
+                    <div class="pub-details">
+                        左為大二作品,右為大一作品
+                    </div>
+                </div>
+                
+                <div   class="publication-item">
+                    <div class="pub-title">文件</div>
+                    <div class="pic">
+                        <embed src="pdf/迷子のハリネズミ.pdf" width="500px" height="600px">
+                    </div>
+                    <div class="pub-abstract">
+                        大一時完成的課堂作業
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <footer class="footer">
+        <p>© Copyright 2025 You R. Name. Powered by Jekyll with al-folio theme. Hosted by GitHub Pages.</p>
+        <div class="con">
+            <h3>聯絡我</h3>
+            <p>nobody@gmail.com</p>
+        </div>
+            
+    </footer>
+    
+    </body>
+</html>
