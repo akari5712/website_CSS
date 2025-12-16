@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>數獨 (Sudoku)</title>
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --board-bg: #ffffff;
+            --text-color: #1f2937;
+            --grid-line: #cbd5e1;
+            --grid-line-thick: #334155;
+            --cell-hover: #e2e8f0;
+            --cell-selected: #bfdbfe; /* 選中格子的顏色 */
+            --cell-related: #eff6ff;  /* 相關行列的顏色 */
+            --cell-same-val: #93c5fd; /* 相同數字的高亮 */
+            --text-blue: #2563eb;     /* 玩家填入的顏色 */
+            --text-error: #ef4444;    /* 錯誤顏色 */
+            --btn-primary: #2563eb;
+            --btn-secondary: #64748b;
+        }
+
+        /* 暗黑模式切換 */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #1a1a1a;
+                --board-bg: #262626;
+                --text-color: #e5e7eb;
+                --grid-line: #404040;
+                --grid-line-thick: #737373;
+                --cell-hover: #333333;
+                --cell-selected: #1e3a8a;
+                --cell-related: #172554;
+                --cell-same-val: #1d4ed8;
+                --text-blue: #60a5fa;
+            }
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 10px;
+            touch-action: manipulation;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 10px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.8rem;
+        }
+        header h1::after {
+            content: "李培榮";
+            color: #543219;
+            font-size: 10px;
+            font-weight: bold;
+            background: rgb(161, 241, 228);
+            padding: 1px 4px;
+            display: inline-block;
+            position: absolute;
+            top: 14px;
+            left: 10px;
+            border-radius: 5px;
+        }
+
+        .controls-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+            padding: 0 5px;
+        }
+
+        select, button {
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        select {
+            background-color: var(--board-bg);
+            color: var(--text-color);
+            border: 1px solid var(--grid-line);
+        }
+
+        .btn-new {
+            background-color: var(--btn-primary);
+            color: white;
+            font-weight: bold;
+        }
+
+        #game-board {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            gap: 0;
+            background-color: var(--grid-line);
+            border: 2px solid var(--grid-line-thick);
+            width: 100%;
+            max-width: 450px;
+            aspect-ratio: 1;
+            margin: 10px auto;
+        }
+
+        .cell {
+            background-color: var(--board-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+            border-right: 1px solid var(--grid-line);
+            border-bottom: 1px solid var(--grid-line);
+        }
+
+        /* 3x3 粗線條 */
+        .cell:nth-child(3n) {
+            border-right: 2px solid var(--grid-line-thick);
+        }
+        .cell:nth-child(9n) {
+            border-right: none;
+        }
+        .cell:nth-child(n+19):nth-child(-n+27),
+        .cell:nth-child(n+46):nth-child(-n+54) {
+            border-bottom: 2px solid var(--grid-line-thick);
+        }
+        .cell:nth-child(n+73) {
+            border-bottom: none;
+        }
+
+        /* 狀態樣式 */
+        .cell.selected { background-color: var(--cell-selected) !important; }
+        .cell.related { background-color: var(--cell-related); }
+        .cell.same-value { background-color: var(--cell-same-val); }
+        .cell.fixed { font-weight: bold; color: var(--text-color); }
+        .cell.user-input { color: var(--text-blue); }
+        .cell.error { color: var(--text-error); background-color: rgba(239, 68, 68, 0.2); }
+
+        /* 筆記樣式 (小數字) */
+        .notes-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            width: 100%;
+            height: 100%;
+            font-size: 0.5rem;
+            line-height: 1;
+            color: var(--text-color);
+            opacity: 0.7;
+            pointer-events: none;
+        }
+        .note-item { display: flex; align-items: center; justify-content: center; }
+
+        /* 數字鍵盤 */
+        .numpad {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            width: 100%;
+            max-width: 450px;
+            margin-top: 10px;
+        }
+
+        .num-btn {
+            background-color: var(--board-bg);
+            color: var(--btn-primary);
+            border: 1px solid var(--grid-line);
+            border-radius: 8px;
+            height: 45px;
+            font-size: 1.25rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .num-btn:active {
+            background-color: var(--cell-hover);
+            transform: translateY(1px);
+        }
+
+        .action-btn {
+            color: var(--text-color);
+            font-size: 1rem;
+        }
+
+        .toggle-btn {
+            grid-column: span 1;
+            background-color: var(--board-bg);
+            border: 1px solid var(--grid-line);
+            color: var(--text-color);
+        }
+
+        .toggle-btn.active {
+            background-color: var(--text-color);
+            color: var(--bg-color);
+        }
+
+        /* 勝利訊息 */
+        #message {
+            margin-top: 10px;
+            height: 24px;
+            color: var(--btn-primary);
+            font-weight: bold;
+        }
+
+        @media (max-width: 400px) {
+            .cell { font-size: 1.2rem; }
+            .numpad { gap: 5px; }
+            .num-btn { height: 40px; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>數獨 Sudoku</h1>
+        <div class="controls-top">
+            <select id="difficulty">
+                <option value="30">簡單</option>
+                <option value="40" selected>中等</option>
+                <option value="50">困難</option>
+            </select>
+            <div id="timer">00:00</div>
+            <button class="btn-new" onclick="newGame()">新遊戲</button>
+        </div>
+    </header>
+
+    <div id="message"></div>
+    <div id="game-board"></div>
+
+    <div class="numpad">
+        <div class="num-btn" onclick="inputNumber(1)">1</div>
+        <div class="num-btn" onclick="inputNumber(2)">2</div>
+        <div class="num-btn" onclick="inputNumber(3)">3</div>
+        <div class="num-btn" onclick="inputNumber(4)">4</div>
+        <div class="num-btn" onclick="inputNumber(5)">5</div>
+        <div class="num-btn" onclick="inputNumber(6)">6</div>
+        <div class="num-btn" onclick="inputNumber(7)">7</div>
+        <div class="num-btn" onclick="inputNumber(8)">8</div>
+        <div class="num-btn" onclick="inputNumber(9)">9</div>
+        <div class="num-btn action-btn" onclick="inputNumber(null)">⌫</div> <!-- 清除 -->
+    </div>
+    
+    <div class="numpad" style="margin-top: 5px; grid-template-columns: 1fr 1fr;">
+        <button id="note-btn" class="num-btn toggle-btn" onclick="toggleNotes()">✎ 筆記模式</button>
+        <button class="num-btn action-btn" onclick="checkSolution()">檢查答案</button>
+    </div>
+
+    <script>
+        // --- 遊戲狀態 ---
+        let board = [];     // 9x9 數字陣列 (0代表空)
+        let solution = [];  // 9x9 解答陣列
+        let fixed = [];     // 9x9 布林陣列 (true代表題目固定數字)
+        let notes = [];     // 9x9 陣列，每個元素是 Set 包含筆記數字
+        
+        let selectedCell = null; // {r, c}
+        let isNoteMode = false;
+        let timerInterval;
+        let seconds = 0;
+
+        const gameBoardEl = document.getElementById('game-board');
+        const messageEl = document.getElementById('message');
+        const noteBtn = document.getElementById('note-btn');
+
+        // --- 初始化 ---
+        function init() {
+            // 產生 81 個格子
+            gameBoardEl.innerHTML = '';
+            for (let r = 0; r < 9; r++) {
+                for (let c = 0; c < 9; c++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    cell.dataset.r = r;
+                    cell.dataset.c = c;
+                    cell.onclick = () => selectCell(r, c);
+                    gameBoardEl.appendChild(cell);
+                }
+            }
+            
+            // 鍵盤支援
+            document.addEventListener('keydown', handleKeydown);
+            
+            newGame();
+        }
+
+        // --- 遊戲邏輯 ---
+
+        function newGame() {
+            const diff = parseInt(document.getElementById('difficulty').value);
+            generateBoard(diff);
+            resetTimer();
+            messageEl.textContent = '';
+            selectedCell = null;
+            renderBoard();
+        }
+
+        function generateBoard(emptyCount) {
+            // 1. 初始化空盤
+            solution = Array.from({length: 9}, () => Array(9).fill(0));
+            board = Array.from({length: 9}, () => Array(9).fill(0));
+            fixed = Array.from({length: 9}, () => Array(9).fill(false));
+            notes = Array.from({length: 9}, () => Array.from({length: 9}, () => new Set()));
+
+            // 2. 填充對角線上的 3 個 3x3 九宮格 (彼此獨立，隨機填充合法即可)
+            fillDiagonal();
+
+            // 3. 用回溯法填滿其餘格子產生完整解答
+            solveSudoku(solution);
+
+            // 4. 挖空格子產生題目
+            removeDigits(emptyCount);
+        }
+
+        function fillDiagonal() {
+            for (let i = 0; i < 9; i = i + 3) {
+                fillBox(i, i);
+            }
+        }
+
+        function fillBox(row, col) {
+            let num;
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    do {
+                        num = Math.floor(Math.random() * 9) + 1;
+                    } while (!isSafeInBox(solution, row, col, num));
+                    solution[row + i][col + j] = num;
+                }
+            }
+        }
+
+        function isSafeInBox(grid, rowStart, colStart, num) {
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    if (grid[rowStart + i][colStart + j] === num) return false;
+                }
+            }
+            return true;
+        }
+
+        function isSafe(grid, row, col, num) {
+            // Check row and column
+            for (let x = 0; x < 9; x++) {
+                if (grid[row][x] === num) return false;
+                if (grid[x][col] === num) return false;
+            }
+            // Check box
+            let startRow = row - row % 3;
+            let startCol = col - col % 3;
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    if (grid[i + startRow][j + startCol] === num) return false;
+                }
+            }
+            return true;
+        }
+
+        function solveSudoku(grid) {
+            let row = -1;
+            let col = -1;
+            let isEmpty = false;
+            for (let i = 0; i < 9; i++) {
+                for (let j = 0; j < 9; j++) {
+                    if (grid[i][j] === 0) {
+                        row = i;
+                        col = j;
+                        isEmpty = true;
+                        break;
+                    }
+                }
+                if (isEmpty) break;
+            }
+
+            if (!isEmpty) return true; // 完成
+
+            for (let num = 1; num <= 9; num++) {
+                if (isSafe(grid, row, col, num)) {
+                    grid[row][col] = num;
+                    if (solveSudoku(grid)) return true;
+                    grid[row][col] = 0;
+                }
+            }
+            return false;
+        }
+
+        function removeDigits(count) {
+            // 複製解答到題目板
+            for(let i=0; i<9; i++) {
+                for(let j=0; j<9; j++) {
+                    board[i][j] = solution[i][j];
+                    fixed[i][j] = true;
+                }
+            }
+
+            // 隨機移除
+            let removed = 0;
+            while (removed < count) {
+                let cellId = Math.floor(Math.random() * 81);
+                let i = Math.floor(cellId / 9);
+                let j = cellId % 9;
+                if (board[i][j] !== 0) {
+                    board[i][j] = 0;
+                    fixed[i][j] = false;
+                    removed++;
+                }
+            }
+        }
+
+        // --- 介面渲染與互動 ---
+
+        function renderBoard() {
+            const cells = document.querySelectorAll('.cell');
+            cells.forEach(cell => {
+                const r = parseInt(cell.dataset.r);
+                const c = parseInt(cell.dataset.c);
+                const val = board[r][c];
+                
+                // 清除所有狀態類別
+                cell.className = 'cell';
+                cell.innerHTML = ''; // 清空內容
+
+                // 1. 填入內容
+                if (val !== 0) {
+                    cell.textContent = val;
+                    if (fixed[r][c]) {
+                        cell.classList.add('fixed');
+                    } else {
+                        cell.classList.add('user-input');
+                        // 簡單檢查錯誤 (僅檢查行/列/宮是否有重複，不看Solution)
+                        if (!isValidPlacement(r, c, val)) {
+                            cell.classList.add('error');
+                        }
+                    }
+                } else {
+                    // 渲染筆記
+                    if (notes[r][c].size > 0) {
+                        const noteGrid = document.createElement('div');
+                        noteGrid.className = 'notes-grid';
+                        for(let k=1; k<=9; k++) {
+                            const noteItem = document.createElement('div');
+                            noteItem.className = 'note-item';
+                            if(notes[r][c].has(k)) noteItem.textContent = k;
+                            noteGrid.appendChild(noteItem);
+                        }
+                        cell.appendChild(noteGrid);
+                    }
+                }
+
+                // 2. 處理選中與高亮狀態
+                if (selectedCell) {
+                    const sr = selectedCell.r;
+                    const sc = selectedCell.c;
+                    const selectedVal = board[sr][sc];
+
+                    if (r === sr && c === sc) {
+                        cell.classList.add('selected');
+                    } else if (r === sr || c === sc || (Math.floor(r/3) === Math.floor(sr/3) && Math.floor(c/3) === Math.floor(sc/3))) {
+                        cell.classList.add('related');
+                    }
+                    
+                    // 高亮相同數字 (如果選中的格子有數字)
+                    if (selectedVal !== 0 && val === selectedVal) {
+                        cell.classList.add('same-value');
+                    }
+                }
+            });
+        }
+
+        // 簡單驗證：檢查當前盤面上是否有重複 (排除自己)
+        function isValidPlacement(r, c, val) {
+            // Check row
+            for(let j=0; j<9; j++) if(j !== c && board[r][j] === val) return false;
+            // Check col
+            for(let i=0; i<9; i++) if(i !== r && board[i][c] === val) return false;
+            // Check box
+            let startR = Math.floor(r/3)*3;
+            let startC = Math.floor(c/3)*3;
+            for(let i=0; i<3; i++) {
+                for(let j=0; j<3; j++) {
+                    if((startR+i !== r || startC+j !== c) && board[startR+i][startC+j] === val) return false;
+                }
+            }
+            return true;
+        }
+
+        function selectCell(r, c) {
+            selectedCell = {r, c};
+            renderBoard();
+        }
+
+        function inputNumber(num) {
+            if (!selectedCell) return;
+            const {r, c} = selectedCell;
+            
+            if (fixed[r][c]) return; // 固定格子不能改
+
+            if (isNoteMode) {
+                // 筆記模式
+                if (num === null) {
+                    notes[r][c].clear();
+                } else {
+                    if (notes[r][c].has(num)) {
+                        notes[r][c].delete(num);
+                    } else {
+                        notes[r][c].add(num);
+                    }
+                }
+            } else {
+                // 一般模式
+                if (num === null) {
+                    board[r][c] = 0;
+                } else {
+                    board[r][c] = num;
+                    notes[r][c].clear(); // 填入數字後清除該格筆記
+                }
+                
+                // 檢查勝利
+                if (isBoardFull() && checkSolution(true)) {
+                   clearInterval(timerInterval);
+                   messageEl.textContent = "🎉 恭喜！你完成了！";
+                }
+            }
+            renderBoard();
+        }
+
+        function toggleNotes() {
+            isNoteMode = !isNoteMode;
+            noteBtn.classList.toggle('active');
+        }
+
+        function handleKeydown(e) {
+            if (!selectedCell) return;
+            
+            const key = e.key;
+            if (key >= '1' && key <= '9') {
+                inputNumber(parseInt(key));
+            } else if (key === 'Backspace' || key === 'Delete') {
+                inputNumber(null);
+            } else if (key.startsWith('Arrow')) {
+                moveSelection(key);
+            } else if (key.toLowerCase() === 'n') {
+                toggleNotes();
+            }
+        }
+
+        function moveSelection(key) {
+            let {r, c} = selectedCell;
+            if (key === 'ArrowUp') r = Math.max(0, r - 1);
+            if (key === 'ArrowDown') r = Math.min(8, r + 1);
+            if (key === 'ArrowLeft') c = Math.max(0, c - 1);
+            if (key === 'ArrowRight') c = Math.min(8, c + 1);
+            selectCell(r, c);
+        }
+
+        function checkSolution(silent = false) {
+            let isCorrect = true;
+            for(let i=0; i<9; i++) {
+                for(let j=0; j<9; j++) {
+                    if (board[i][j] !== solution[i][j]) {
+                        isCorrect = false;
+                        break;
+                    }
+                }
+            }
+            
+            if (!silent) {
+                if (isCorrect && isBoardFull()) {
+                    messageEl.textContent = "🎉 完美正確！";
+                    clearInterval(timerInterval);
+                } else if (!isBoardFull()) {
+                    messageEl.textContent = "尚未填完喔！";
+                } else {
+                    messageEl.textContent = "還有錯誤，請再檢查一下。";
+                }
+            }
+            return isCorrect;
+        }
+
+        function isBoardFull() {
+            for(let i=0; i<9; i++) {
+                for(let j=0; j<9; j++) {
+                    if (board[i][j] === 0) return false;
+                }
+            }
+            return true;
+        }
+
+        // --- 計時器 ---
+        function resetTimer() {
+            clearInterval(timerInterval);
+            seconds = 0;
+            document.getElementById('timer').textContent = "00:00";
+            timerInterval = setInterval(() => {
+                seconds++;
+                const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+                const s = (seconds % 60).toString().padStart(2, '0');
+                document.getElementById('timer').textContent = `${m}:${s}`;
+            }, 1000);
+        }
+
+        // 啟動
+        init();
+
+    </script>
+</body>
+</html>
